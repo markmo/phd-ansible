@@ -1,0 +1,42 @@
+---
+- name: install requirements for switching off selinux
+  yum: name=libselinux-python state=latest
+
+- name: disable selinux
+  selinux: state=disabled
+  notify:
+    - turn it off
+
+# Consider using get_url module rather than running wget, and Consider using yum module rather than running rpm
+- name: install epel repo
+  command: "{{item}}"
+  with_items:
+    - wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+    - rpm -Uvh epel-release-6*.rpm
+    # - wget http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm
+    # - rpm -Uvh epel-release-7*.rpm
+
+- name: install prerequisite libraries
+  yum: name="{{item}}" state=latest
+  with_items:
+    - httpd
+    - mod_ssl
+    - postgresql
+    - postgresql-devel
+    - postgresql-server
+    - postgresql-jdbc
+    - compat-readline5
+    - createrepo
+    - sigar
+    - sudo
+    - python-ldap
+    - openldap
+    - openldap-clients
+    - openldap-servers
+    - pam_krb5
+    - sssd
+    - authconfig
+    - krb5-workstation
+    - krb5-libs
+    - krb5-server
+    - expect

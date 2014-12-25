@@ -1,0 +1,3 @@
+---
+- name: turn it off
+  command: setenforce 0

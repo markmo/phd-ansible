@@ -1,0 +1,9 @@
+---
+java_version: 7u71
+
+pcc_version_and_build: 2.3.0-443
+phd_version_and_build: 2.1.0.0-175
+pads_version_and_build: 1.2.1.0-10335
+prts_version_and_build: 1.3.1-49833
+
+cluster_name: phd-c1

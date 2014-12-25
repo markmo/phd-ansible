@@ -1,0 +1,8 @@
+---
+- name: check if path exists
+  stat: path=/etc/gphd/conf.gphd-2.0.1/container-executor.cfg
+  register: check_path
+
+- name: change owner and permissions for the container-executor.cfg file
+  file: path=/etc/gphd/conf.gphd-2.0.1/container-executor.cfg mode=0644 owner=root group=root state=file
+  when: check_path.stat.exists

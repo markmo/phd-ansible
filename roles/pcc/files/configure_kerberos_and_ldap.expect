@@ -1,0 +1,44 @@
+#!/usr/bin/expect
+
+spawn icm_client security -i
+expect -exact "\r
+\[INFO\] This configures a very simple Kerberos Server for PHD usage.\r
+\[INFO\] You should review and adjust the settings to reflect your environment and policies.\r
+\[WARNING\] Attempt to re-configure previously configured KDC server may fail\r
+Do you wish to configure Kerberos Server? (y/n) \[Yes\]? "
+send -- "\r"
+expect -exact "\r
+Enter REALM for Kerberos (ex PIVOTAL.IO): "
+send -- "snbc.io\r"
+expect -exact "snbc.io\r
+Enter username for Kerberos Server ADMIN \[admin\]: "
+send -- "\r"
+expect -exact "\r
+Enter new password for Kerberos Server ADMIN: "
+send -- "admin\r"
+expect -exact "\r
+Re-enter the new password for Kerberos Server ADMIN: "
+send -- "admin\r"
+expect -exact "\r
+Enter new MASTER password for KDC: "
+send -- "admin\r"
+expect -exact "\r
+Re-enter new MASTER password for KDC: "
+send -- "admin\r"
+expect -exact "\r
+\[WARNING\] Attempt to re-configure previously configure LDAP server may result in data or functionality loss\r
+Do you wish to configure LDAP Server? (y/n) \[Yes\]? "
+send -- "\r"
+expect -exact "\r
+Enter Domain name for LDAP base DN (ex pivotal.io): "
+send -- "snbc.io\r"
+expect -exact "snbc.io\r
+Enter username for LDAP Administrator \[Manager\]: "
+send -- "\r"
+expect -exact "\r
+Enter new password for LDAP administrator: "
+send -- "admin\r"
+expect -exact "\r
+Re-enter new password for LDAP administrator: "
+send -- "admin\r"
+expect eof

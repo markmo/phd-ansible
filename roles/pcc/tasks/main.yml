@@ -1,0 +1,134 @@
+---
+- name: make /root/phd directory
+  file: path=/root/phd state=directory
+
+- name: unarchive Pivotal Command Center (PCC)
+  unarchive: src=PCC-{{ pcc_version_and_build }}.x86_64.tar.gz dest=/root/phd
+
+- name: create gpadmin home dir
+  file: path=/home/gpadmin state=directory
+
+- name: create gpadmin user
+  shell: (grep '^gpadmin:' /etc/passwd || useradd -d /home/gpadmin -M -U gpadmin) &> /dev/null
+
+- name: change gpadmin home dir ownership
+  file: path=/home/gpadmin state=directory owner=gpadmin group=gpadmin recurse=yes
+
+# alternatively, write an expect script as the pcc install will create the gpadmin user
+
+# - name: create gpadmin user and home dir
+#   shell: $item
+#   with_items:
+#     - mkdir -p /home/gpadmin
+#     - (grep '^gpadmin:' /etc/passwd || useradd -d /home/gpadmin -M -U gpadmin) &> /dev/null
+#     - chown -R gpadmin:gpadmin /home/gpadmin
+
+- name: install PCC
+  raw: "cd /root/phd/PCC-2.3.0-443; export PATH=/usr/local/bin:$PATH; ./install"
+  # BASH_SOURCE in install script is failing using command
+  # command: chdir=/root/phd/PCC-2.3.0-443 install
+  # environment:
+  #   PATH: /usr/local/bin:$PATH
+
+- name: configure Kerberos and LDAP
+  script: configure_kerberos_and_ldap.expect
+  sudo: true
+  sudo_user: gpadmin
+
+- name: import jdk
+  command: icm_client import -r /tmp/jdk-{{ java_version }}-linux-x64.rpm
+  sudo: true
+  sudo_user: gpadmin
+
+- name: unarchive Pivotal Hadoop (PHD)
+  unarchive: src=PHD-{{ phd_version_and_build }}.tar.gz dest=/home/gpadmin
+
+- name: unarchive Pivotal Advanced Database Services (PADS)
+  unarchive: src=PADS-{{ pads_version_and_build }}.tar.gz dest=/home/gpadmin
+
+- name: unarchive Pivotal Real Time Services (PRTS)
+  unarchive: src=PRTS-{{ prts_version_and_build }}.tar.gz dest=/home/gpadmin
+
+- name: import PHD service
+  command: icm_client import -s /home/gpadmin/PHD-{{ phd_version_and_build }}
+  sudo: true
+  sudo_user: gpadmin
+
+- name: import HAWQ/PXF services
+  command: icm_client import -s /home/gpadmin/PADS-{{ pads_version_and_build }}
+  sudo: true
+  sudo_user: gpadmin
+
+- name: import PRTS (GemFire XD) service
+  command: icm_client import -s /home/gpadmin/PRTS-{{ prts_version_and_build }}
+  sudo: true
+  sudo_user: gpadmin
+
+- name: fetch the default cluster configuration template
+  command: icm_client fetch-template -o /home/gpadmin/ClusterConfigDir
+  sudo: true
+  sudo_user: gpadmin
+
+- name: copy clusterConfig.xml
+  copy: src=clusterConfig.xml dest=/home/gpadmin/ClusterConfigDir/clusterConfig.xml
+  sudo: true
+  sudo_user: gpadmin
+
+- name: copy hdfs/hdfs-site.xml
+  copy: src=hdfs-site.xml dest=/home/gpadmin/ClusterConfigDir/hdfs/hdfs-site.xml
+  sudo: true
+  sudo_user: gpadmin
+
+- name: copy hdfs/core-site.xml
+  copy: src=core-site.xml dest=/home/gpadmin/ClusterConfigDir/hdfs/core-site.xml
+  sudo: true
+  sudo_user: gpadmin
+
+- name: copy yarn/yarn-site.xml
+  copy: src=yarn-site.xml dest=/home/gpadmin/ClusterConfigDir/yarn/yarn-site.xml
+  sudo: true
+  sudo_user: gpadmin
+
+- name: copy yarn/mapred-site.xml
+  copy: src=mapred-site.xml dest=/home/gpadmin/ClusterConfigDir/yarn/mapred-site.xml
+  sudo: true
+  sudo_user: gpadmin
+
+- name: copy hbase/hbase-site.xml
+  copy: src=hbase-site.xml dest=/home/gpadmin/ClusterConfigDir/hbase/hbase-site.xml
+  sudo: true
+  sudo_user: gpadmin
+
+- name: copy hawq/gpinitsystem_config
+  copy: src=gpinitsystem_config dest=/home/gpadmin/ClusterConfigDir/hawq/gpinitsystem_config
+  sudo: true
+  sudo_user: gpadmin
+
+- name: copy hawq/hdfs-client.xml
+  copy: src=hdfs-client.xml dest=/home/gpadmin/ClusterConfigDir/hawq/hdfs-client.xml
+  sudo: true
+  sudo_user: gpadmin
+
+- name: set vm.overcommit_memory to 0 to prevent OOM and other VM issues
+  shell: sed -i 's/vm.overcommit_memory = 2/vm.overcommit_memory = 0/g' /usr/lib/gphd/gphdmgr/hawq_sys_config/sysctl.conf
+
+- name: add GemFire XD (GFXD) as a data source
+  shell: echo '/usr/lib/gphd/gfxd/lib/gemfirexd.jar' >> /home/gpadmin/ClusterConfigDir/pxf/pxf-public.classpath
+  sudo: true
+  sudo_user: gpadmin
+
+- name: copy expect script to deploy cluster
+  template: src=deploy_cluster.expect.j2 dest=/home/gpadmin/deploy_cluster.expect mode=0755
+  sudo: true
+  sudo_user: gpadmin
+
+- name: deploy cluster
+  command: /home/gpadmin/deploy_cluster.expect
+  sudo: true
+  sudo_user: gpadmin
+
+# requires delay before cluster can be started(?)
+# - name: start cluster
+#   command: icm_client start -l {{ cluster_name }}
+#   sudo: true
+#   sudo_user: gpadmin

@@ -1,0 +1,12 @@
+#!/usr/bin/expect -f
+
+set timeout 100
+
+spawn icm_client deploy -c /home/gpadmin/ClusterConfigDir -s -i -d -j /tmp/jdk-{{ java_version }}-linux-x64.rpm -y /usr/lib/gphd/gphdmgr/hawq_sys_config/
+
+expect "Please enter the root password for the cluster nodes:"
+send -- "vagrant\r"
+expect "PCC creates a gpadmin user on the newly added cluster nodes (if any). Please enter a non-empty password to be used for the gpadmin user:"
+send -- "admin\r"
+send -- "\r"
+expect eof
